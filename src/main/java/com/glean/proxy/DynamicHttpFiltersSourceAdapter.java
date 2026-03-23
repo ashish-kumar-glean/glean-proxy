@@ -23,6 +23,8 @@ public class DynamicHttpFiltersSourceAdapter extends HttpFiltersSourceAdapter {
       Logger.getLogger(DynamicHttpFiltersSourceAdapter.class.getName());
   private final OnPremisesProxy legacyProxy = OnPremisesProxy.fromEnvironment();
   private final String cloudPlatform = System.getenv("CLOUD_PLATFORM");
+  private final boolean allowApiIngress =
+      "true".equalsIgnoreCase(System.getenv("ALLOW_API_INGRESS"));
 
   private final List<BiFunction<HttpRequest, ChannelHandlerContext, HttpFilters>> awsFilters;
   private final List<BiFunction<HttpRequest, ChannelHandlerContext, HttpFilters>> gcpFilters;
@@ -66,6 +68,15 @@ public class DynamicHttpFiltersSourceAdapter extends HttpFiltersSourceAdapter {
         logger.fine("Using HttpNotFoundFilter as legacy proxy is null");
         return new HttpNotFoundFilter(originalRequest);
       }
+    } else if (allowApiIngress && isDirectApiPath(originalRequest.uri())) {
+      if (legacyProxy != null) {
+        logger.info("Direct API path detected, routing to LegacyRequestFilter: "
+            + originalRequest.uri());
+        return new LegacyRequestFilter(originalRequest, legacyProxy, true);
+      } else {
+        logger.fine("Using HttpNotFoundFilter as legacy proxy is null");
+        return new HttpNotFoundFilter(originalRequest);
+      }
     }
 
     return switch (cloudPlatform) {
@@ -87,5 +98,9 @@ public class DynamicHttpFiltersSourceAdapter extends HttpFiltersSourceAdapter {
             .collect(Collectors.toCollection(ArrayList::new));
 
     return new CompositeFilter(originalRequest, filters);
+  }
+
+  private static boolean isDirectApiPath(String uri) {
+    return uri.startsWith("/api/") || uri.startsWith("/rest/");
   }
 }

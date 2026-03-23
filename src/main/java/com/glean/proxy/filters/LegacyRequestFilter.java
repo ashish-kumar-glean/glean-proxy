@@ -22,17 +22,29 @@ import org.littleshoot.proxy.HttpFiltersAdapter;
 public class LegacyRequestFilter extends HttpFiltersAdapter {
   private static final Logger LOGGER = Logger.getLogger(LegacyRequestFilter.class.getName());
   private final OnPremisesProxy legacyProxy;
+  private final boolean directApiPath;
   private static final String PROXY_HEADER = "OnPrem-Proxy";
 
   public LegacyRequestFilter(HttpRequest originalRequest, OnPremisesProxy legacyProxy) {
+    this(originalRequest, legacyProxy, false);
+  }
+
+  public LegacyRequestFilter(
+      HttpRequest originalRequest, OnPremisesProxy legacyProxy, boolean directApiPath) {
     super(originalRequest);
     this.legacyProxy = legacyProxy;
+    this.directApiPath = directApiPath;
   }
 
   @Override
   public HttpResponse clientToProxyRequest(HttpObject httpObject) {
     if (httpObject instanceof HttpRequest) {
       final HttpRequest httpRequest = (HttpRequest) httpObject;
+
+      if (directApiPath) {
+        httpRequest.setUri("/proxy" + httpRequest.uri());
+      }
+
       final String[] splitPath = httpRequest.uri().split("/", 4);
       if (splitPath.length < 3) {
         LOGGER.severe(String.format("Unexpected legacy request format: %s", httpRequest.uri()));
