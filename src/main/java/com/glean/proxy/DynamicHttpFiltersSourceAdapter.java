@@ -39,9 +39,9 @@ public class DynamicHttpFiltersSourceAdapter extends HttpFiltersSourceAdapter {
 
   // Aggregate the request body so filters can operate on a FullHttpRequest. Requests larger than
   // this cap are rejected with HTTP 413 by Netty's HttpObjectAggregator before any filter runs.
-  // Override the cap via MAX_REQUEST_BUFFER_BYTES — required for endpoints like
-  // /api/index/v1/indexdocuments where customers send payloads well over the default.
-  private static final int DEFAULT_MAX_REQUEST_BUFFER_BYTES = 64 * 1024 * 1024; // 64 MB
+  // Override the default 5 MB cap via MAX_REQUEST_BUFFER_BYTES — required for endpoints like
+  // /api/index/v1/indexdocuments where customers send payloads well over 5 MB.
+  private static final int DEFAULT_MAX_REQUEST_BUFFER_BYTES = 5 * 1024 * 1024; // 5 MB
 
   private static final int MAX_REQUEST_BUFFER_BYTES = resolveMaxRequestBufferBytes();
 
